@@ -11,17 +11,49 @@ from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageFont
 from scipy.ndimage import gaussian_filter1d
 
 # Configuration
-AUDIO_FILE = "audio2.mp4" #Will also be passed in by parameters from api request (for now the name will be in the local folder of the server.).
+AUDIO_FILE = "audio.wav" #Will also be passed in by parameters from api request (for now the name will be in the local folder of the server.).
 BACKGROUND_IMAGE = "bg2.jpg" #Will also be passed in by parameters from api request (for now the name will be in the local folder of the server.).
 OUTPUT_FILE = "test5.mp4" # Need to be uploaded to a speicifed youtube drive.
 DURATION = None # Later Filled In.
 FPS = 23.967
 SONG_NAME = "XXX" #Will Be later filled in by parameters from api Request
 
+#Load fonts
+fonts = {
+    "now_playing_font": {
+        "folder": os.path.join(".", "pastTestRes", "Fondamento,Permanent_Marker,Staatliches", "Staatliches"),
+        "filename": "Staatliches-Regular.ttf",
+        "size": 60,
+    },
+    "song_name_font": {
+        "folder": os.path.join(".", "pastTestRes", "Fondamento,Permanent_Marker,Staatliches", "Permanent_Marker"),
+        "filename": "PermanentMarker-Regular.ttf",
+        "size": 90,
+    },
+    "artist_font": {
+        "folder": os.path.join(".", "pastTestRes", "Fondamento,Permanent_Marker,Staatliches", "Fondamento"),
+        "filename": "Fondamento-Regular.ttf",
+        "size": 60,
+    },
+}
+
+# Load fonts
+font_objects = {}
+for font_name, font_details in fonts.items():
+    font_path = os.path.join(font_details["folder"], font_details["filename"])
+    if os.path.exists(font_path):
+        try:
+            font_objects[font_name] = ImageFont.truetype(font_path, font_details["size"])
+            print(f"{font_name} loaded successfully from {font_path}")
+        except Exception as e:
+            print(f"Error loading {font_name} from {font_path}: {e}")
+    else:
+        print(f"Font file not found: {font_path}")
+
 # Preload Static Resources
-now_playing_font = ImageFont.truetype("fonts/Staatliches-Regular.ttf", 60)
-song_name_font = ImageFont.truetype("fonts/PermanentMarker-Regular.ttf", 90)
-artist_font = ImageFont.truetype("fonts/Fondamento-Regular.ttf", 60)
+now_playing_font = font_objects.get("now_playing_font")
+song_name_font = font_objects.get("song_name_font")
+artist_font = font_objects.get("artist_font")
 button_size = 100
 button_gap = 35
 next_button = Image.open("res/nextBtn.png").resize((button_size, button_size), Image.Resampling.LANCZOS).convert("RGBA")
