@@ -1,0 +1,119 @@
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+
+Optimizations (v2):
+Reuse Preprocessed Data:
+Preprocess and cache static elements like the blurred background, buttons, fonts, and shadow once instead of recreating them for every frame.
+
+Simplify make_frame Logic:
+Avoid reloading and resizing buttons, fonts, and the background image inside the make_frame loop.
+Pass these preprocessed elements as arguments or keep them global.
+
+Optimize FFT Calculation:
+Use preloaded and downsampled audio data where feasible.
+
+Optimize Bar Plot Generation:
+Replace Matplotlib with direct drawing using Pillow for the bar plot to reduce overhead.
+
+Memory Management:
+Ensure unnecessary objects are deleted after use.
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+1s test:
+Resource Usage Summary:
+Total time used: 7.00 seconds, parameters Duration and FPS: (1, 23.967)
+Total CPU Time Used: 5.58 seconds
+Average Memory Usage: 387.95 MB
+
+Total time used: 3.32 seconds, parameters Duration and FPS: (1, 23.967)
+Total CPU Time Used: 2.25 seconds
+Average Memory Usage: 259.69 MB
+
+60s test:
+Total time used: 347.73 seconds, parameters Duration and FPS: (60, 23.967)
+Total CPU Time Used: 330.83 seconds
+Average Memory Usage: 654.66 MB
+
+Resource Usage Summary:
+Total time used: 135.49 seconds, parameters Duration and FPS: (60, 23.967)
+Total CPU Time Used: 127.77 seconds
+Average Memory Usage: 265.55 MB
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+
+In-Place Modifications:
+
+Modify the background_img directly in make_frame instead of creating a copy each time. This saves memory allocation and copy time.
+
+Reduce Function Calls:
+
+Minimize the number of function calls within make_frame, as each call has some overhead. Inline simple operations where it makes sense.
+
+Optimized Drawing with NumPy:
+
+Instead of using ImageDraw.rectangle for each bar in the plot, create a pre-allocated NumPy array and update it directly with the bar data. 
+Then, convert it to a PIL Image and paste it onto the frame. This can be much faster than drawing individual rectangles.
+
+Audio Processing in Chunks:
+
+Process audio data in smaller chunks within the audio_spectrum_frame function. This reduces memory pressure, especially for long audio files.
+
+FFT Optimization:
+
+Use the scipy.fft.rfft and scipy.fft.rfftfreq functions for real-valued FFTs, as they are optimized for real-input data and provide a slight 
+performance improvement over the general fft function.
+
+Video Encoding:
+
+Use hardware-accelerated video encoding if available (e.g., h264_nvenc or hevc_nvenc if you have an NVIDIA GPU, or other platform-specific 
+encoders). Experiment with different preset options in write_videofile.
+
+Conclusion: Not great abandoned.
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+
+Threads = 4;
+Prev v2.
+Resource Usage Summary:
+Total time used: 132.50 seconds, parameters Duration and FPS: (60, 23.967)
+Total CPU Time Used: 125.28 seconds
+Average Memory Usage: 272.40 MB
+
+New...
+Resource Usage Summary:
+Total time used: 147.12 seconds, parameters Duration and FPS: (60, 23.967)
+Total CPU Time Used: 136.53 seconds
+Average Memory Usage: 321.49 MB
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+
+V2. Optimization: preprocessed overlayed once before the loop (instead of in make_frame) and stored globally.
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+Prev v2.with preprocessing.
+
+Resource Usage Summary:
+Total time used: 15.69 seconds, parameters Duration and FPS: (60, 23.967)
+Total CPU Time Used: 12.45 seconds
+Average Memory Usage: 335.89 MB
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
+
+Future Thoughts: Maybe Parallelizations?
+
+------------------------------------------------------------------------------------------------------------
+************************************************************************************************************
+------------------------------------------------------------------------------------------------------------
