@@ -158,15 +158,15 @@ def create_mock_args(file_path):
 app = Flask(__name__)
 
 # Configure folders (same as original)
-UPLOAD_FOLDER = './downloads'
+UPLOAD_FOLDER = os.path.join('.', 'downloads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-OUTPUT_FOLDER = './output'
+OUTPUT_FOLDER = os.path.join('.', 'output')
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
-DOWNLOAD_FOLDER = './downloads'
+DOWNLOAD_FOLDER = os.path.join('.', 'downloads')
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 
