@@ -2,3 +2,4 @@
 ./upload.py-oauth2.json
 ./client_secrets.json
 ./apiWupload.py-oauth2.json
+./downloads/
