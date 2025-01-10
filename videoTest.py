@@ -11,12 +11,12 @@ from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageFont
 from scipy.ndimage import gaussian_filter1d
 
 # Configuration
-AUDIO_FILE = "audio.wav" #Will also be passed in by parameters from api request (for now the name will be in the local folder of the server.).
+AUDIO_FILE = "./Tests/audio2.mp4" #Will also be passed in by parameters from api request (for now the name will be in the local folder of the server.).
 BACKGROUND_IMAGE = "bg2.jpg" #Will also be passed in by parameters from api request (for now the name will be in the local folder of the server.).
-OUTPUT_FILE = "test5.mp4" # Need to be uploaded to a speicifed youtube drive.
+OUTPUT_FILE = "test6.mp4" # Need to be uploaded to a speicifed youtube drive.
 DURATION = None # Later Filled In.
-FPS = 23.967
-SONG_NAME = "XXX" #Will Be later filled in by parameters from api Request
+FPS = 1
+SONG_NAME = "AI PIRATES AND BOOK BYTES\n" #Will Be later filled in by parameters from api Request
 
 #Load fonts
 fonts = {
@@ -163,8 +163,8 @@ def make_frame(t):
 
     # Add Text
     draw.text((850, 100), "NOWPLAYING:", fill="white", font=now_playing_font, anchor="mm", align="center")
-    draw.text((960, 173), SONG_NAME, fill="white", font=song_name_font, anchor="mm", align="center")
-    draw.text((960, 255), "Artist: Tech Music", fill="white", font=artist_font, anchor="mm", align="center")
+    draw.text((960, 223), SONG_NAME, fill="white", font=song_name_font, anchor="mm", align="center") #173 before
+    draw.text((960, 255), "Artist: TechNews", fill="white", font=artist_font, anchor="mm", align="center")
 
     return np.array(frame)
 
