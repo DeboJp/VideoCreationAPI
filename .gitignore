@@ -1,3 +1,4 @@
 .venv/
-upload.py-oauth2.json
-client_secrets.json
+./upload.py-oauth2.json
+./client_secrets.json
+./apiWupload.py-oauth2.json
