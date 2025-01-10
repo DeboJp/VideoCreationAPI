@@ -24,7 +24,7 @@ from scipy.ndimage import gaussian_filter1d
 import uuid
 from datetime import date
 from argparse import ArgumentParser
-
+import threading
 
 # -------------------------------------------------------------------------
 # YouTube Upload Code (Mostly Untouched)
@@ -503,11 +503,13 @@ def generate_music():
 
         # Check if the task was successful based on the status and return only the task_id
         if response_data.get("code") == 200 and response_data.get("message") == "success" and response_data.get("data",{}).get("status") == "pending":
-          task_id = response_data.get("data", {}).get("task_id")
-          if task_id:
-            return jsonify({"task_id": task_id}), 200
-          else:
-            return jsonify({"error": "Task created but missing task_id"}), 500
+            task_id = response_data.get("data", {}).get("task_id")
+            if task_id:
+                return jsonify({
+                    "task_id": task_id,
+                }), 200
+            else:
+                return jsonify({"error": "Task created but missing task_id"}), 500
         else:
             return jsonify({"error": "GoAPI request was not successful", "details": response_data.get("message")}), response_data.get("code")
 
@@ -601,6 +603,123 @@ def get_music_data(task_id):
         return jsonify({"error": "Failed to communicate with GoAPI.", "details": str(e)}), 500
     except Exception as e:
         return jsonify({"error": "Internal server error.", "details": str(e)}), 500
+
+# -------------------------------------------------------------------------
+# -- ORCHESTRATION ADDITION --
+# -------------------------------------------------------------------------
+@app.route('/orchestrate_pipeline', methods=['POST'])
+def orchestrate_pipeline():
+    """
+    New route that:
+      1) Calls /generate_music and immediately returns that response (task_id, etc.) 
+      2) In the background, waits 2 hours, calls /get_music_data with up to 10 retries if needed, 
+      3) Finally calls /process with the resulting audio_file, background_image, plus any extra params.
+    """
+    # Grab parameters for generate_music. Also gather needed data for final /process step.
+    title = request.form.get('title', '').strip()
+    lyrics = request.form.get('lyrics', '').strip()
+    tags = request.form.get('tags', '').strip()
+
+    # These might be for the final /process route
+    final_song_name = request.form.get('final_song_name', 'UnknownSong').strip()
+    final_description = request.form.get('final_description', 'No Description').strip()
+
+    # We’ll call /generate_music in-process via requests
+    try:
+        # Make a POST request to our own /generate_music route
+        generate_resp = requests.post(
+            "http://localhost:3000/generate_music",
+            data={
+                "title": title,
+                "lyrics": lyrics,
+                "tags": tags,
+            }
+        )
+        # Immediately parse that JSON
+        generate_data = generate_resp.json()
+
+        # Return the result from /generate_music to the user right away
+        # (So the user doesn't have to wait for everything else to finish).
+        user_response = jsonify(generate_data), generate_resp.status_code
+
+        # If generate_music gave an error, just return that error (won't do background flow)
+        if generate_resp.status_code != 200 or "error" in generate_data:
+            print("Orchestration: generate_music failed; not proceeding with pipeline.")
+            return user_response
+
+        # If success, we proceed in the background
+        task_id = generate_data.get("task_id")
+        print(f"Orchestration: Received task_id={task_id}. Launching background thread...")
+
+        def background_pipeline():
+            try:
+                print("Orchestration: Sleeping for 2 hours before get_music_data...")
+                time.sleep(7200)  # 2 hours
+
+                # Retry up to 10 times with a 10 min interval
+                max_retries = 10
+                for attempt in range(1, max_retries + 1):
+                    print(f"Orchestration: Attempt {attempt} to get_music_data for task_id={task_id}...")
+                    get_resp = requests.get(f"http://localhost:3000/get_music_data/{task_id}")
+                    if get_resp.status_code == 200:
+                        # Success
+                        get_data = get_resp.json()
+                        print(f"Orchestration: get_music_data succeeded. Received: {get_data}")
+                        
+                        # We assume clip1 was produced. If not, handle accordingly.
+                        audio_file_path = get_data.get("clip1audiopath")
+                        background_image_path = get_data.get("clip1imagepath")
+
+                        if not audio_file_path or not background_image_path:
+                            print("Orchestration: Missing audio_file_path or background_image_path from get_music_data.")
+                            return
+
+                        # Now call /process route with the final data
+                        print("Orchestration: Calling /process route to generate and upload video.")
+                        proc_resp = requests.post(
+                            "http://localhost:3000/process",
+                            data={
+                                "audio_file": audio_file_path,
+                                "background_image": background_image_path,
+                                "song_name": final_song_name,
+                                "description": final_description
+                            }
+                        )
+
+                        if proc_resp.status_code == 200:
+                            print("Orchestration: /process completed successfully.")
+                            print(proc_resp.json())
+                        else:
+                            print(f"Orchestration: /process returned status {proc_resp.status_code}")
+                            print(proc_resp.json())
+                        return  # Done! End background_pipeline here.
+
+                    else:
+                        # If get_music_data fails, log it and wait 10 minutes to retry
+                        print(f"Orchestration: get_music_data attempt {attempt} failed with {get_resp.status_code}.")
+                        print(get_resp.json())
+                        if attempt < max_retries:
+                            print("Orchestration: Waiting 10 minutes before next retry.")
+                            time.sleep(600)  # 10 minutes
+                        else:
+                            print("Orchestration: Max retries reached; stopping pipeline.")
+            except Exception as e:
+                print(f"Orchestration: Unexpected error in background pipeline: {e}")
+
+        # Fire up the background pipeline
+        thread = threading.Thread(target=background_pipeline, daemon=True)
+        thread.start()
+
+        # Return immediately to the caller
+        return user_response
+
+    except Exception as e:
+        print(f"Orchestration: Unexpected error while calling /generate_music: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# End of new orchestrate_pipeline route
+# -------------------------------------------------------------------------
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000)
